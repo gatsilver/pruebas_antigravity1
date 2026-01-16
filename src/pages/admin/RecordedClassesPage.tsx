@@ -190,12 +190,12 @@ export default function RecordedClassesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Clases Grabadas</h1>
-                    <p className="text-slate-500">Gestiona los módulos y videos para tus alumnos.</p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Clases Grabadas</h1>
+                    <p className="text-slate-500 text-sm md:text-base">Gestiona los módulos y videos para tus alumnos.</p>
                 </div>
-                <Button onClick={() => setIsModuleModalOpen(true)}>
+                <Button onClick={() => setIsModuleModalOpen(true)} className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     Nuevo Módulo
                 </Button>
@@ -204,24 +204,32 @@ export default function RecordedClassesPage() {
             <div className="space-y-4">
                 {modules.map((mod) => (
                     <div key={mod.id} className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                        {/* Module Header - Responsive */}
                         <div
-                            className="p-4 bg-slate-50 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
+                            className="p-3 md:p-4 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
                             onClick={() => setExpandedModule(expandedModule === mod.id ? null : mod.id)}
                         >
-                            <div className="flex items-center gap-3">
-                                {expandedModule === mod.id ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
-                                <div>
-                                    <h3 className="font-semibold text-lg">{mod.title}</h3>
-                                    {mod.description && <p className="text-sm text-slate-500">{mod.description}</p>}
+                            {/* Mobile Layout */}
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-1">
+                                    {expandedModule === mod.id ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-base md:text-lg">{mod.title}</h3>
+                                    {mod.description && <p className="text-xs md:text-sm text-slate-500 mt-1">{mod.description}</p>}
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-xs font-medium bg-white px-2 py-1 rounded border border-slate-200">
+                                            {mod.recorded_classes?.length || 0} videos
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium bg-white px-2 py-1 rounded border border-slate-200">
-                                    {mod.recorded_classes?.length || 0} videos
-                                </span>
+                            {/* Action Buttons - Stacked on mobile */}
+                            <div className="flex items-center gap-2 mt-3 ml-8">
                                 <Button
                                     size="sm"
                                     variant="outline"
+                                    className="flex-1 sm:flex-none"
                                     onClick={(e) => { e.stopPropagation(); setSelectedModuleId(mod.id); setIsVideoModalOpen(true) }}
                                 >
                                     <Plus className="w-3 h-3 mr-1" /> Video
@@ -254,23 +262,23 @@ export default function RecordedClassesPage() {
                                                             {video.video_url}
                                                         </a>
 
-                                                        {/* Stats Cards */}
-                                                        <div className="flex gap-3 mt-3">
-                                                            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 px-3 py-2 rounded-lg border border-yellow-200 flex items-center gap-2">
+                                                        {/* Stats Cards - Responsive */}
+                                                        <div className="flex flex-wrap gap-2 md:gap-3 mt-3">
+                                                            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 px-2 md:px-3 py-2 rounded-lg border border-yellow-200 flex items-center gap-2">
                                                                 <Star className="w-4 h-4 text-yellow-600 fill-yellow-400" />
                                                                 <div>
                                                                     <p className="text-xs text-yellow-700 font-medium">Valoración</p>
                                                                     <p className="text-sm font-bold text-yellow-900">{video.stats?.avgRating || 0} / 5</p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-2">
+                                                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-2 md:px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-2">
                                                                 <MessageCircle className="w-4 h-4 text-blue-600" />
                                                                 <div>
                                                                     <p className="text-xs text-blue-700 font-medium">Comentarios</p>
                                                                     <p className="text-sm font-bold text-blue-900">{video.stats?.totalComments || 0}</p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 px-3 py-2 rounded-lg border border-green-200 flex items-center gap-2">
+                                                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 px-2 md:px-3 py-2 rounded-lg border border-green-200 flex items-center gap-2">
                                                                 <TrendingUp className="w-4 h-4 text-green-600" />
                                                                 <div>
                                                                     <p className="text-xs text-green-700 font-medium">Duración</p>
