@@ -132,8 +132,8 @@ export default function SchedulePage() {
                 })}
             </div>
 
-            {/* Classes List */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Classes List - Responsive Grid */}
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {loading ? (
                     <div className="col-span-full flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-slate-300" /></div>
                 ) : dailyClasses.length === 0 ? (

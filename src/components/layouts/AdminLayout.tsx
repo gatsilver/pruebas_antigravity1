@@ -18,7 +18,7 @@ export default function AdminLayout() {
     const navigate = useNavigate()
     const location = useLocation()
     const [notification, setNotification] = useState<{ message: string, visible: boolean } | null>(null)
-    const [isSidebarOpen, setSidebarOpen] = useState(true) // For mobile handling if needed later
+    const [isSidebarOpen, setSidebarOpen] = useState(false) // Closed by default on mobile
 
     const handleSignOut = async () => {
         await signOut()
@@ -26,6 +26,7 @@ export default function AdminLayout() {
     }
 
     useEffect(() => {
+        let mounted = true
         const channel = supabase
             .channel('admin-reservations')
             .on(
@@ -33,12 +34,15 @@ export default function AdminLayout() {
                 { event: 'INSERT', schema: 'public', table: 'reservations' },
                 async (payload: unknown) => {
                     console.log('New reservation!', payload)
-                    showNotification('¡Nueva reserva recibida!')
+                    if (mounted) {
+                        showNotification('¡Nueva reserva recibida!')
+                    }
                 }
             )
             .subscribe()
 
         return () => {
+            mounted = false
             supabase.removeChannel(channel)
         }
     }, [])
@@ -75,8 +79,8 @@ export default function AdminLayout() {
                     </div>
                 </div>
 
-                {/* Search Bar (Hidden on mobile) */}
-                <div className="hidden md:flex flex-1 max-w-md mx-4 relative">
+                {/* Search Bar (Hidden on mobile and tablet) */}
+                <div className="hidden lg:flex flex-1 max-w-md mx-4 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
                     <input
                         type="text"
@@ -102,10 +106,19 @@ export default function AdminLayout() {
                 </div>
             </header>
 
+            {/* Backdrop Overlay for Mobile */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* SIDEBAR - White */}
             <aside className={cn(
                 "fixed top-16 bottom-0 left-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
-                !isSidebarOpen && "-translate-x-full lg:translate-x-0"
+                isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+                "lg:translate-x-0" // Always visible on desktop
             )}>
                 <div className="py-6 px-4">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Navegación</p>
@@ -150,11 +163,8 @@ export default function AdminLayout() {
             </aside>
 
             {/* MAIN CONTENT */}
-            <main className={cn(
-                "pt-16 min-h-screen transition-all duration-300",
-                isSidebarOpen ? "lg:ml-64" : "ml-0"
-            )}>
-                <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
+            <main className="pt-16 lg:ml-64 min-h-screen transition-all duration-300">
+                <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto">
                     <Outlet />
                 </div>
             </main>

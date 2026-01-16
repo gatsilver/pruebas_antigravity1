@@ -365,7 +365,7 @@ export default function VideoLibraryPage() {
                 <p className="text-slate-500 text-lg">Accede a tus clases grabadas y practica en casa cuando quieras.</p>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {modules.map((mod) => (
                     <div key={mod.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group">
                         <div className="p-6 bg-gradient-to-br from-slate-50 to-white">
