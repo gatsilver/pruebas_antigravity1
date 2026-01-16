@@ -75,7 +75,7 @@ export default function AdminLayout() {
                         <div className="bg-white/20 p-1.5 rounded-lg">
                             <span className="font-bold text-lg tracking-tight">MP</span>
                         </div>
-                        <span className="font-bold text-xl tracking-tight hidden md:block">Material Able</span>
+                        <span className="font-bold text-xl tracking-tight hidden md:block">Pilates Web GTS</span>
                     </div>
                 </div>
 

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
-import { Plus, Search, Loader2, User, X } from 'lucide-react'
+import { Plus, Search, Loader2, User, X, Edit2, Pause, Play } from 'lucide-react'
 
 type Profile = {
     id: string
     full_name: string
     role: string
     phone: string | null
+    status?: 'active' | 'paused' // Add status field
 }
 
 export default function MembersPage() {
@@ -18,6 +19,11 @@ export default function MembersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [newMember, setNewMember] = useState({ full_name: '', email: '', phone: '', password: '' })
     const [creating, setCreating] = useState(false)
+
+    // Edit Member States
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [editingMember, setEditingMember] = useState<Profile | null>(null)
+    const [editForm, setEditForm] = useState({ full_name: '', phone: '', role: 'cliente' })
 
     useEffect(() => {
         fetchMembers()
@@ -70,6 +76,61 @@ export default function MembersPage() {
     const filteredMembers = members.filter(member =>
         member.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     )
+
+    // Open Edit Modal
+    const openEditModal = (member: Profile) => {
+        setEditingMember(member)
+        setEditForm({
+            full_name: member.full_name,
+            phone: member.phone || '',
+            role: member.role
+        })
+        setIsEditModalOpen(true)
+    }
+
+    // Handle Edit Member
+    const handleEditMember = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingMember) return
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    full_name: editForm.full_name,
+                    phone: editForm.phone,
+                    role: editForm.role
+                })
+                .eq('id', editingMember.id)
+
+            if (error) throw error
+
+            fetchMembers()
+            setIsEditModalOpen(false)
+            alert('Miembro actualizado exitosamente')
+        } catch (error: any) {
+            alert('Error al actualizar miembro: ' + error.message)
+        }
+    }
+
+    // Toggle Pause/Activate Member
+    const toggleMemberStatus = async (member: Profile) => {
+        const newStatus = member.status === 'paused' ? 'active' : 'paused'
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status: newStatus })
+                .eq('id', member.id)
+
+            if (error) throw error
+
+            fetchMembers()
+            alert(`Miembro ${newStatus === 'paused' ? 'pausado' : 'activado'} exitosamente`)
+        } catch (error: any) {
+            alert('Error al cambiar estado: ' + error.message)
+        }
+    }
 
 
 
@@ -268,6 +329,53 @@ export default function MembersPage() {
                 </div>
             )}
 
+            {/* Edit Member Modal (NEW) */}
+            {isEditModalOpen && editingMember && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl relative animate-in fade-in zoom-in duration-200">
+                        <button onClick={() => setIsEditModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+
+                        <h2 className="text-xl font-bold mb-4">Editar Miembro</h2>
+                        <h3 className="text-sm text-slate-500 mb-4">Editando: <span className="font-semibold text-slate-900">{editingMember.full_name}</span></h3>
+
+                        <form onSubmit={handleEditMember} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Nombre Completo</label>
+                                <Input
+                                    required
+                                    value={editForm.full_name}
+                                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Teléfono</label>
+                                <Input
+                                    value={editForm.phone}
+                                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Rol</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                                    value={editForm.role}
+                                    onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+                                >
+                                    <option value="cliente">Cliente</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div className="pt-4 flex justify-end gap-2">
+                                <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button>
+                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                                    Guardar Cambios
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-200 flex items-center gap-4">
                     <div className="relative flex-1 max-w-sm">
@@ -322,26 +430,55 @@ export default function MembersPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Activo
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${member.status === 'paused'
+                                                    ? 'bg-orange-100 text-orange-800'
+                                                    : 'bg-green-100 text-green-800'
+                                                }`}>
+                                                {member.status === 'paused' ? 'Pausado' : 'Activo'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => openMembershipModal(member)}
-                                            >
-                                                Membresía
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => toggleRole(member)}
-                                                className="text-xs text-slate-400 hover:text-slate-900"
-                                            >
-                                                {member.role === 'admin' ? '↓ Cliente' : '↑ Admin'}
-                                            </Button>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openEditModal(member)}
+                                                    className="gap-1"
+                                                >
+                                                    <Edit2 className="w-3 h-3" />
+                                                    Editar
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => toggleMemberStatus(member)}
+                                                    className={`gap-1 ${member.status === 'paused'
+                                                            ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                                            : 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'
+                                                        }`}
+                                                >
+                                                    {member.status === 'paused' ? (
+                                                        <><Play className="w-3 h-3" /> Activar</>
+                                                    ) : (
+                                                        <><Pause className="w-3 h-3" /> Pausar</>
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openMembershipModal(member)}
+                                                >
+                                                    Membresía
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => toggleRole(member)}
+                                                    className="text-xs text-slate-400 hover:text-slate-900"
+                                                >
+                                                    {member.role === 'admin' ? '↓ Cliente' : '↑ Admin'}
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
