@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
-import { Plus, Search, Loader2, Calendar, Trash2, Pencil, UserPlus, X } from 'lucide-react'
+import { Plus, Trash2, Pencil, UserPlus, X, Calendar } from 'lucide-react'
 import type { Database } from '../../types/supabase'
-import { startOfWeek, addDays, format, nextDay, getDay } from 'date-fns'
+import { addDays, format, getDay } from 'date-fns'
 
 type Class = Database['public']['Tables']['classes']['Row']
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -14,7 +14,7 @@ const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', '
 export default function ClassesPage() {
     const [classes, setClasses] = useState<Class[]>([])
     const [members, setMembers] = useState<Profile[]>([])
-    const [loading, setLoading] = useState(true)
+    const [_loading, setLoading] = useState(true)
 
     // Modal States
     const [isClassModalOpen, setIsClassModalOpen] = useState(false)
@@ -240,7 +240,7 @@ export default function ClassesPage() {
                                 >
                                     <option value="">Seleccionar alumno...</option>
                                     {members.map(m => (
-                                        <option key={m.id} value={m.id}>{m.full_name || m.email}</option>
+                                        <option key={m.id} value={m.id}>{m.full_name}</option>
                                     ))}
                                 </select>
                             </div>

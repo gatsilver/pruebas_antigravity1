@@ -45,7 +45,7 @@ export default function SchedulePage() {
         if (dailyError) console.error(dailyError)
 
         const counts: Record<string, number> = {}
-        allDailyRes?.forEach(r => {
+        allDailyRes?.forEach((r: { class_id: string }) => {
             counts[r.class_id] = (counts[r.class_id] || 0) + 1
         })
 

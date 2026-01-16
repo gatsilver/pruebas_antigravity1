@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Button } from '../../components/ui/button'
-import { Loader2, Calendar, Clock, MapPin, CheckCircle, XCircle } from 'lucide-react'
+import { Loader2, Clock, MapPin, CheckCircle, XCircle } from 'lucide-react'
 import type { Database } from '../../types/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { format } from 'date-fns'

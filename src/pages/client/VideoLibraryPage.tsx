@@ -23,6 +23,7 @@ type RecordedClass = {
 
 type Comment = {
     id: string
+    user_id: string
     content: string
     rating: number
     created_at: string
@@ -103,7 +104,7 @@ export default function VideoLibraryPage() {
         else {
             setComments(data || [])
             // Check if current user has already commented
-            const existingComment = data?.find(c => c.user_id === user?.id)
+            const existingComment = data?.find((c: Comment) => c.user_id === user?.id)
             if (existingComment) {
                 setUserComment(existingComment)
                 setNewComment(existingComment.content)

@@ -44,7 +44,7 @@ export default function MembersPage() {
         try {
             const tempPassword = newMember.password || Math.random().toString(36).slice(-8)
 
-            const { data, error } = await supabase.functions.invoke('create-user', {
+            const { error } = await supabase.functions.invoke('create-user', {
                 body: {
                     email: newMember.email,
                     password: tempPassword,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import {
-    Users, Calendar, BookOpen, Star, Activity, TrendingUp
+    Users, Calendar, BookOpen, TrendingUp
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

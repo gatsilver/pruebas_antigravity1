@@ -3,7 +3,6 @@ import { supabase } from '../../supabaseClient'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Plus, Trash2, ChevronDown, ChevronRight, PlayCircle, Star, MessageCircle, Edit, BarChart3, TrendingUp, Eye } from 'lucide-react'
-import { cn } from '../../lib/utils'
 
 // Types
 type Module = {
@@ -38,7 +37,7 @@ type VideoComment = {
 export default function RecordedClassesPage() {
     const [modules, setModules] = useState<Module[]>([])
     const [expandedModule, setExpandedModule] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [_loading, setLoading] = useState(true)
 
     // Modals
     const [isModuleModalOpen, setIsModuleModalOpen] = useState(false)
@@ -72,7 +71,7 @@ export default function RecordedClassesPage() {
         if (error) console.error(error)
         else {
             // Fetch stats for each video
-            const modulesWithStats = await Promise.all((data || []).map(async (mod) => {
+            const modulesWithStats = await Promise.all((data || []).map(async (mod: Module) => {
                 if (mod.recorded_classes) {
                     const classesWithStats = await Promise.all(mod.recorded_classes.map(async (video: RecordedClass) => {
                         const stats = await fetchVideoStats(video.id)
@@ -95,7 +94,7 @@ export default function RecordedClassesPage() {
 
         const totalComments = comments?.length || 0
         const avgRating = totalComments > 0
-            ? comments.reduce((acc, c) => acc + c.rating, 0) / totalComments
+            ? comments.reduce((acc: number, c: { rating: number }) => acc + c.rating, 0) / totalComments
             : 0
 
         return {

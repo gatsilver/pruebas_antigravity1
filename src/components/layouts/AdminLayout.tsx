@@ -1,9 +1,7 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { LayoutDashboard, Users, Calendar, BookOpen, LogOut, Bell, Search, Menu, X, Settings, Video } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, BookOpen, LogOut, Bell, Search, Menu, Settings, Video } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import { Button } from '../ui/button'
-import { Input } from '../ui/input'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 
@@ -33,7 +31,7 @@ export default function AdminLayout() {
             .on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'reservations' },
-                async (payload) => {
+                async (payload: unknown) => {
                     console.log('New reservation!', payload)
                     showNotification('¡Nueva reserva recibida!')
                 }
