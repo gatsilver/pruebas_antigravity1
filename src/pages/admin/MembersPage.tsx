@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
-import { Plus, Search, Loader2, User, X, Edit2, Pause, Play } from 'lucide-react'
+import { Plus, Search, Loader2, User, X, Edit2, Pause, Play, Eye } from 'lucide-react'
 
 type Profile = {
     id: string
     full_name: string
     role: string
     phone: string | null
-    status?: 'active' | 'paused' // Add status field
+    status?: 'active' | 'paused'
+    dni?: string | null
+    address?: string | null
+    email?: string
+    email_confirmed_at?: string | null
 }
 
 export default function MembersPage() {
@@ -25,22 +29,50 @@ export default function MembersPage() {
     const [editingMember, setEditingMember] = useState<Profile | null>(null)
     const [editForm, setEditForm] = useState({ full_name: '', phone: '', role: 'cliente' })
 
+    // Pause/Activate Confirmation States
+    const [isConfirmPauseOpen, setIsConfirmPauseOpen] = useState(false)
+    const [memberToPause, setMemberToPause] = useState<Profile | null>(null)
+
+    // Member Details States
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+    const [selectedMemberDetails, setSelectedMemberDetails] = useState<Profile | null>(null)
+    const [membershipDetails, setMembershipDetails] = useState<any>(null)
+
     useEffect(() => {
         fetchMembers()
     }, [])
 
     const fetchMembers = async () => {
         setLoading(true)
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            //.eq('role', 'cliente') // Show all users to allow admin promotion/demotion
-            .order('created_at', { ascending: false })
+        try {
+            // Intenta usar la función RPC segura para obtener estado de confirmación de email
+            const { data: rpcData, error: rpcError } = await supabase
+                .rpc('get_profiles_data')
 
-        if (error) console.error(error)
-        else setMembers(data || [])
+            if (!rpcError && rpcData) {
+                setMembers(rpcData)
+            } else {
+                if (rpcError?.message?.includes('function') && rpcError?.message?.includes('does not exist')) {
+                    console.warn("RPC fetch failed: Function pending. Using standard fetch.")
+                } else {
+                    console.warn("RPC fetch failed:", rpcError?.message)
+                }
 
-        setLoading(false)
+                // Fallback: fetch normal (sin estado de email confirmado)
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+
+                if (error) throw error
+                // Asignamos datos básicos
+                setMembers(data || [])
+            }
+        } catch (error: any) {
+            console.error('Error fetching members:', error.message)
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleCreateMember = async (e: React.FormEvent) => {
@@ -74,7 +106,7 @@ export default function MembersPage() {
     }
 
     const filteredMembers = members.filter(member =>
-        member.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+        member.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     // Open Edit Modal
@@ -130,6 +162,61 @@ export default function MembersPage() {
         } catch (error: any) {
             alert('Error al cambiar estado: ' + error.message)
         }
+    }
+
+    // Open Pause/Activate Confirmation
+    const openPauseConfirmation = (member: Profile) => {
+        setMemberToPause(member)
+        setIsConfirmPauseOpen(true)
+    }
+
+    // Confirm Pause/Activate Member
+    const confirmPauseActivate = async () => {
+        if (!memberToPause) return
+
+        const newStatus = memberToPause.status === 'paused' ? 'active' : 'paused'
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status: newStatus })
+                .eq('id', memberToPause.id)
+
+            if (error) throw error
+
+            fetchMembers()
+            setIsConfirmPauseOpen(false)
+            setMemberToPause(null)
+            alert(`Miembro ${newStatus === 'paused' ? 'pausado' : 'activado'} exitosamente`)
+        } catch (error: any) {
+            alert('Error al cambiar estado: ' + error.message)
+        }
+    }
+
+    // Fetch Member Details
+    const fetchMemberDetails = async (member: Profile) => {
+        setSelectedMemberDetails(member)
+
+        // Fetch membership details
+        try {
+            const { data, error } = await supabase
+                .from('memberships')
+                .select('*')
+                .eq('user_id', member.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single()
+
+            if (!error && data) {
+                setMembershipDetails(data)
+            } else {
+                setMembershipDetails(null)
+            }
+        } catch (err) {
+            setMembershipDetails(null)
+        }
+
+        setIsDetailsModalOpen(true)
     }
 
 
@@ -376,6 +463,131 @@ export default function MembersPage() {
                 </div>
             )}
 
+            {/* Pause/Activate Confirmation Modal */}
+            {isConfirmPauseOpen && memberToPause && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl relative animate-in fade-in zoom-in duration-200">
+                        <h2 className="text-xl font-bold mb-4">Confirmar Cambio de Estado</h2>
+                        <p className="text-slate-600 mb-6">
+                            ¿Estás seguro que deseas {memberToPause.status === 'paused' ? 'activar' : 'pausar'} a <span className="font-semibold">{memberToPause.full_name}</span>?
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <Button type="button" variant="ghost" onClick={() => setIsConfirmPauseOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={confirmPauseActivate}
+                                className={memberToPause.status === 'paused' ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-600 hover:bg-orange-700'}
+                            >
+                                {memberToPause.status === 'paused' ? 'Sí, Activar' : 'Sí, Pausar'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Member Details Modal */}
+            {isDetailsModalOpen && selectedMemberDetails && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg w-full max-w-2xl shadow-xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+                        <button onClick={() => setIsDetailsModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                            <X className="h-4 w-4" />
+                        </button>
+
+                        <h2 className="text-2xl font-bold mb-6">Detalles del Miembro</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg border-b pb-2">Información Personal</h3>
+                                <div>
+                                    <label className="text-sm text-slate-500">Nombre Completo</label>
+                                    <p className="font-medium">{selectedMemberDetails.full_name}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500">Email</label>
+                                    <p className="font-medium flex items-center gap-2">
+                                        {selectedMemberDetails.email || 'No visible'}
+                                        {!selectedMemberDetails.email_confirmed_at && (
+                                            <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">No verificado</span>
+                                        )}
+                                        {selectedMemberDetails.email_confirmed_at && (
+                                            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Verificado</span>
+                                        )}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500">DNI</label>
+                                    <p className="font-medium">{selectedMemberDetails.dni || 'No registrado'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500">Teléfono</label>
+                                    <p className="font-medium">{selectedMemberDetails.phone || 'No registrado'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500">Dirección</label>
+                                    <p className="font-medium">{selectedMemberDetails.address || 'No registrada'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500">Rol</label>
+                                    <p className="font-medium">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selectedMemberDetails.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-800'
+                                            }`}>
+                                            {selectedMemberDetails.role === 'admin' ? 'Administrador' : 'Cliente'}
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500">Estado</label>
+                                    <p className="font-medium">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selectedMemberDetails.status === 'paused' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'
+                                            }`}>
+                                            {selectedMemberDetails.status === 'paused' ? 'Pausado' : 'Activo'}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg border-b pb-2">Membresía</h3>
+                                {membershipDetails ? (
+                                    <>
+                                        <div>
+                                            <label className="text-sm text-slate-500">Tipo de Plan</label>
+                                            <p className="font-medium">{membershipDetails.type}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-slate-500">Fecha de Inicio</label>
+                                            <p className="font-medium">{new Date(membershipDetails.start_date).toLocaleDateString('es-ES')}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-slate-500">Fecha de Vencimiento</label>
+                                            <p className="font-medium">{new Date(membershipDetails.end_date).toLocaleDateString('es-ES')}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-slate-500">Estado de Membresía</label>
+                                            <p className="font-medium">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${new Date(membershipDetails.end_date) > new Date()
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                    {new Date(membershipDetails.end_date) > new Date() ? 'Vigente' : 'Vencida'}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-slate-500 italic">No tiene membresía asignada</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <Button onClick={() => setIsDetailsModalOpen(false)}>Cerrar</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-200 flex items-center gap-4">
                     <div className="relative flex-1 max-w-sm">
@@ -430,15 +642,30 @@ export default function MembersPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${member.status === 'paused'
+                                            {member.email_confirmed_at === null ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                    Falta Confirmación
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${member.status === 'paused'
                                                     ? 'bg-orange-100 text-orange-800'
                                                     : 'bg-green-100 text-green-800'
-                                                }`}>
-                                                {member.status === 'paused' ? 'Pausado' : 'Activo'}
-                                            </span>
+                                                    }`}>
+                                                    {member.status === 'paused' ? 'Pausado' : 'Activo'}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => fetchMemberDetails(member)}
+                                                    className="gap-1"
+                                                >
+                                                    <Eye className="w-3 h-3" />
+                                                    Detalles
+                                                </Button>
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -451,10 +678,10 @@ export default function MembersPage() {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => toggleMemberStatus(member)}
+                                                    onClick={() => openPauseConfirmation(member)}
                                                     className={`gap-1 ${member.status === 'paused'
-                                                            ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                                                            : 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'
+                                                        ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                                        : 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'
                                                         }`}
                                                 >
                                                     {member.status === 'paused' ? (
@@ -469,14 +696,6 @@ export default function MembersPage() {
                                                     onClick={() => openMembershipModal(member)}
                                                 >
                                                     Membresía
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => toggleRole(member)}
-                                                    className="text-xs text-slate-400 hover:text-slate-900"
-                                                >
-                                                    {member.role === 'admin' ? '↓ Cliente' : '↑ Admin'}
                                                 </Button>
                                             </div>
                                         </td>
