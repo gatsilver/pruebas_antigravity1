@@ -27,12 +27,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+        let mounted = true
+
         // Initial session check
         supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+            if (!mounted) return
             setSession(session)
             setUser(session?.user ?? null)
             if (session?.user) {
-                fetchRole(session.user.id)
+                fetchRole(session.user.id, mounted)
             } else {
                 setLoading(false)
             }
@@ -40,28 +43,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
+            if (!mounted) return
             setSession(session)
             setUser(session?.user ?? null)
             if (session?.user) {
-                // Only fetch if role is not already set or user changed? 
-                // For safety, re-fetch.
-                fetchRole(session.user.id)
+                fetchRole(session.user.id, mounted)
             } else {
                 setRole(null)
                 setLoading(false)
             }
         })
 
-        return () => subscription.unsubscribe()
+        return () => {
+            mounted = false
+            subscription.unsubscribe()
+        }
     }, [])
 
-    const fetchRole = async (userId: string) => {
+    const fetchRole = async (userId: string, mounted = true) => {
         try {
             const { data, error } = await supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', userId)
                 .single()
+
+            if (!mounted) return
 
             if (error) {
                 console.error('Error fetching role:', error)
@@ -71,7 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error('Error fetching role:', error)
         } finally {
-            setLoading(false)
+            if (mounted) {
+                setLoading(false)
+            }
         }
     }
 
