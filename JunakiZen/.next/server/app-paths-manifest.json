@@ -1,0 +1,10 @@
+{
+  "/login/page": "app/login/page.js",
+  "/org-selector/page": "app/org-selector/page.js",
+  "/app/[orgId]/historial/page": "app/app/[orgId]/historial/page.js",
+  "/app/[orgId]/ideas/page": "app/app/[orgId]/ideas/page.js",
+  "/app/[orgId]/pacientes/page": "app/app/[orgId]/pacientes/page.js",
+  "/app/[orgId]/dashboard/page": "app/app/[orgId]/dashboard/page.js",
+  "/app/[orgId]/citas/page": "app/app/[orgId]/citas/page.js",
+  "/app/[orgId]/clientes/page": "app/app/[orgId]/clientes/page.js"
+}
